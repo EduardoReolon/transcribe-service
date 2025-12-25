@@ -62,8 +62,11 @@ jobs:
               
               if [ -f "convert_requirements.py" ]; then
                 python convert_requirements.py
-                # Se houver constraints.txt no seu padrão, adicione: -c constraints.txt
-                pip install -r requirements_flexible.txt
+
+                # Força o CMake a aceitar a política antiga
+                export CMAKE_ARGS="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+                
+                pip install -r requirements_flexible.txt -c constraints.txt
               else
                 pip install -r requirements.txt
               fi
