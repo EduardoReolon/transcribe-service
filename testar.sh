@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 2. Envia para o seu servidor local na porta 5000
+# Envia para o servidor local na porta 5000
 echo "Enviando para o Whisper..."
 curl -X POST "http://localhost:5000/transcribe" \
      -H "accept: application/json" \

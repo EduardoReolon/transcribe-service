@@ -14,12 +14,14 @@ os.makedirs(STORAGE_DIR, exist_ok=True)
 
 # Tenta carregar o Whisper.cpp (Performance), senão vai de Faster-Whisper (Compatibilidade)
 try:
-    from whisper_cpp_python import Whisper
     MODEL_TYPE = "cpp"
     # Definições para o modelo Small
     REPO_ID = "ggerganov/whisper.cpp"
     FILENAME = "ggml-small.bin"
     MODEL_PATH = os.path.join(STORAGE_DIR, FILENAME)
+    raise ImportError("cpp otimizado para dispositivos muito limitados, na configuração padrão é mais lento, talvez se configurar muito bem seja mais eficiente")
+    
+    from whisper_cpp_python import Whisper
     print(f"--- Modo: Whisper.cpp (Alta Performance ARM) - Modelo: {FILENAME} ---")
 except ImportError:
     from faster_whisper import WhisperModel
@@ -50,10 +52,10 @@ async def transcribe(audio: UploadFile = File(...)):
         f.write(await audio.read())
     
     if MODEL_TYPE == "cpp":
-        result = model.transcribe(temp_path)
+        result = model.transcribe(temp_path, language="pt")
         text = result["text"]
     else:
-        segments, _ = model.transcribe(temp_path, beam_size=5)
+        segments, _ = model.transcribe(temp_path, beam_size=1)
         text = "".join([s.text for s in segments])
     
     os.remove(temp_path)
