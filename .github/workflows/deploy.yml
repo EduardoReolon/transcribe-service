@@ -39,20 +39,20 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            # 1. Instalação de dependências de compilação (necessário para o Whisper ARM)
+            # 1. Instalação de dependências (Python 3.10 e Compilação ARM)
             sudo apt-get update
-            sudo apt-get install -y python3-pip cmake build-essential
 
             TARGET_PATH=${{ env.SERVER_TARGET_PATH }}
             cd $TARGET_PATH
 
-            # 2. Setup do Venv
+            # 2. Setup do Venv com Python 3.10
             if [ ! -d "venv" ]; then
-              python3 -m venv venv
+              sudo apt-get install -y python3.10-dev libpython3.10-dev cmake build-essential
+              python3.10 -m venv venv
             fi
             source venv/bin/activate
 
-            # 3. Lógica de Requisitos Flexíveis (Seu padrão)
+            # 3. Lógica de Requisitos Flexíveis
             NEW_REQ_HASH=$(sha256sum requirements.txt | awk '{ print $1 }')
             OLD_REQ_HASH_FILE=".requirements_hash"
 
@@ -60,9 +60,9 @@ jobs:
               echo "Dependências mudaram. Instalando..."
               pip install --upgrade pip setuptools wheel
               
-              # Executa seu script de conversão
               if [ -f "convert_requirements.py" ]; then
                 python convert_requirements.py
+                # Se houver constraints.txt no seu padrão, adicione: -c constraints.txt
                 pip install -r requirements_flexible.txt
               else
                 pip install -r requirements.txt
@@ -71,9 +71,11 @@ jobs:
               echo "$NEW_REQ_HASH" > $OLD_REQ_HASH_FILE
             fi
 
-            # 4. Garante que a pasta storage existe para o modelo
-            mkdir -p storage
+            # 4. Garante diretórios necessários
+            mkdir -p storage logs
 
-            # 5. Restart do Serviço
-            echo "Reiniciando serviço: ${{ env.SYSTEMCTL_SERVICES }}"
-            sudo systemctl restart ${{ env.SYSTEMCTL_SERVICES }}
+            # 5. Reinicialização de Serviços em Loop
+            for service in ${{ env.SYSTEMCTL_SERVICES }}; do
+              echo "Restarting: $service"
+              sudo systemctl restart $service --no-block
+            done
