@@ -6,6 +6,7 @@ import uvicorn
 import os
 import requests
 import shutil
+from huggingface_hub import hf_hub_download
 
 app = FastAPI()
 STORAGE_DIR = "storage"
@@ -15,9 +16,11 @@ os.makedirs(STORAGE_DIR, exist_ok=True)
 try:
     from whisper_cpp_python import Whisper
     MODEL_TYPE = "cpp"
-    MODEL_URL = "https://huggingface.co/reach-vb/whisper-large-v3-turbo-ggml/resolve/main/ggml-large-v3-turbo.bin"
-    MODEL_PATH = os.path.join(STORAGE_DIR, "ggml-large-v3-turbo.bin")
-    print("--- Modo: Whisper.cpp (Alta Performance ARM) ---")
+    # Definições para o modelo Small
+    REPO_ID = "ggerganov/whisper.cpp"
+    FILENAME = "ggml-small.bin"
+    MODEL_PATH = os.path.join(STORAGE_DIR, FILENAME)
+    print(f"--- Modo: Whisper.cpp (Alta Performance ARM) - Modelo: {FILENAME} ---")
 except ImportError:
     from faster_whisper import WhisperModel
     MODEL_TYPE = "faster"
@@ -26,11 +29,15 @@ except ImportError:
 
 # Inicialização do Modelo
 if MODEL_TYPE == "cpp":
-    if not os.path.exists(MODEL_PATH):
-        print("Baixando modelo GGUF...")
-        with requests.get(MODEL_URL, stream=True) as r:
-            with open(MODEL_PATH, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
+    # hf_hub_download garante que o arquivo de ~480MB esteja íntegro
+    print(f"Verificando/Baixando modelo {FILENAME}...")
+    hf_hub_download(
+        repo_id=REPO_ID,
+        filename=FILENAME,
+        local_dir=STORAGE_DIR,
+        local_dir_use_symlinks=False
+    )
+    # Inicializa com 4 threads para o modelo Small (instância ARM aguenta bem)
     model = Whisper(model_path=MODEL_PATH, n_threads=4)
 else:
     # O faster-whisper gerencia o download sozinho

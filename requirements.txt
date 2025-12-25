@@ -1,4 +1,5 @@
 fastapi
+huggingface_hub
 uvicorn
 python-multipart
 whisper-cpp-python
